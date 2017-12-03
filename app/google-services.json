@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "629066523099",
+    "firebase_url": "https://ghanareport-8f09e.firebaseio.com",
+    "project_id": "ghanareport-8f09e",
+    "storage_bucket": "ghanareport-8f09e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:629066523099:android:d59001473fdbd25c",
+        "android_client_info": {
+          "package_name": "com.braimahabdullah.ghreport"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "629066523099-a2is7ebemdalv51lk19a3hla5lc3bp7b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.braimahabdullah.ghreport",
+            "certificate_hash": "5d11420093437f44e16d807cb820463cd27de0cb"
+          }
+        },
+        {
+          "client_id": "629066523099-evshdbtdqvi6poq4js4j42rgn0aj6elh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC0IPYTU-f82nv0hEWsi1wWBy-QdaSoTto"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "629066523099-evshdbtdqvi6poq4js4j42rgn0aj6elh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
