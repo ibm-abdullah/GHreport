@@ -7,21 +7,24 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.firebase.ui.auth.AuthUI;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
-public class Register extends AppCompatActivity implements View.OnClickListener {
+public class RegisterActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private static final String TAG = "Register";
+    private static final String TAG = "RegisterActivity";
     private EditText mUsername;
     private EditText mFirstName;
     private EditText mLastName;
@@ -31,7 +34,6 @@ public class Register extends AppCompatActivity implements View.OnClickListener 
     private EditText mPhoneNumber;
 
     private FirebaseAuth mAuth;
-    private FirebaseUser user;
     private DatabaseReference mRef;
     private FirebaseDatabase mFirebaseDatabase;
     @Override
@@ -52,15 +54,19 @@ public class Register extends AppCompatActivity implements View.OnClickListener 
         findViewById(R.id.sign_up_button).setOnClickListener(this);
         findViewById(R.id.sign_in_button).setOnClickListener(this);
 
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        mPhoneNumber.setText(currentUser.getPhoneNumber().toString());
+
         mAuth = FirebaseAuth.getInstance();
         mFirebaseDatabase = FirebaseDatabase.getInstance("https://ghanareport-8f09e.firebaseio.com/");
+        mRef = mFirebaseDatabase.getReferenceFromUrl("https://ghanareport-8f09e.firebaseio.com/");
     }
 
     private void createUser() {
         Log.d(TAG, "createAccount:");
-/*        if (!validateForm()) {
+       if (!validateForm()) {
             return;
-        }*/
+        }
         String username = mUsername.toString();
         String firstname = mFirstName.toString();
         String lastname = mLastName.toString();
@@ -68,31 +74,39 @@ public class Register extends AppCompatActivity implements View.OnClickListener 
         String password = mPassword.toString();
         String phoneNumber = mPhoneNumber.toString();
 
-        UserInformation newUser = new UserInformation(username, firstname, lastname, email, phoneNumber, password);
-        createAccount(email,password);
-        newUser.setUserId(user.getUid());
+        FirebaseAuth auth = FirebaseAuth.getInstance();
 
-        mRef.child("users").child(newUser.getUserId()).setValue(newUser);
-    }
+        //Check if a user is signed in
+        if(auth.getCurrentUser() != null){
 
-    private void createAccount(String email, String password) {
-        mAuth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
-                    @Override
-                    public void onComplete(@NonNull Task<AuthResult> task) {
-                        if (task.isSuccessful()) {
-                            // Sign in success, update UI with the signed-in user's information
-                            Toast.makeText(Register.this, "New Account created",
-                                    Toast.LENGTH_SHORT).show();
-                            user = mAuth.getCurrentUser();
-                        } else {
-                            // If sign in fails, display a message to the user.
-                            Log.w(TAG, "createUserWithEmail:failure", task.getException());
-                            Toast.makeText(Register.this, "Authentication failed.",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
+            FirebaseUser user = auth.getCurrentUser();
+            String uid = user.getUid();
+            //Create user info object
+            UserInformation newUser = new UserInformation(username, firstname, lastname, email, phoneNumber, password);
+
+            DatabaseReference userRef = mRef.child("users").child(uid);
+            userRef.setValue(newUser);
+            // Read from the database
+            userRef.addValueEventListener(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    // This method is called once with the initial value and again
+                    // whenever data at this location is updated.
+                    String value = dataSnapshot.getValue(String.class);
+                    Toast.makeText(RegisterActivity.this, "User profile has been updated",
+                            Toast.LENGTH_SHORT).show();
+                    Log.d(TAG, "Value is: " + value);
+                }
+
+                @Override
+                public void onCancelled(DatabaseError error) {
+                    // Failed to read value
+                    Toast.makeText(RegisterActivity.this, "Failed to update user profile",
+                            Toast.LENGTH_SHORT).show();
+                    Log.w(TAG, "Failed to read value.", error.toException());
+                }
+            });
+        }
     }
 
     @Override
@@ -102,10 +116,24 @@ public class Register extends AppCompatActivity implements View.OnClickListener 
             Intent registerIntent = new Intent(this, LoginActivity.class);
             startActivity(registerIntent);
         } else if (i == R.id.sign_up_button) {
-            //createUser();
-            Toast.makeText(Register.this, "Creating new User",
+            Toast.makeText(RegisterActivity.this, "Updating User profile",
                     Toast.LENGTH_SHORT).show();
-        } else {
+            createUser();
+        }else if(i ==R.id.sign_out_button){
+            AuthUI.getInstance()
+                    .signOut(this)
+                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+                        public void onComplete(@NonNull Task<Void> task) {
+                            // user is now signed out
+                            Toast.makeText(RegisterActivity.this, "User signed out.",
+                                    Toast.LENGTH_SHORT).show();
+                            Intent i  = new Intent(RegisterActivity.this,PostActivity.class);
+                            startActivity(new Intent(i));
+                            finish();
+                        }
+                    });
+        }
+        else {
 
         }
     }

@@ -3,29 +3,16 @@ package com.braimahabdullah.ghreport;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.util.Log;
 
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
 
-import com.google.android.gms.auth.api.signin.GoogleSignIn;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.SignInButton;
-import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.AuthCredential;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.GoogleAuthProvider;
 
 /**
  * A login screen that offers login via email/password.
@@ -39,7 +26,7 @@ public class LoginActivity extends AppCompatActivity implements
     private EditText mPasswordField;
     private GoogleSignInOptions gso;
     ;
-    private GoogleSignInClient mGoogleSignInClient;
+    //private GoogleSignInClient mGoogleSignInClient;
     private FirebaseAuth mAuth;
 
     @Override
@@ -66,7 +53,7 @@ public class LoginActivity extends AppCompatActivity implements
                 .requestEmail()
                 .build();
 
-        mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
+        //mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
         mAuth = FirebaseAuth.getInstance();
     }
@@ -79,7 +66,7 @@ public class LoginActivity extends AppCompatActivity implements
 
     }
 
-    private void signIn(String email, String password) {
+/*    private void signIn(String email, String password) {
         Log.d(TAG, "signIn:" + email);
         if (!validateForm()) {
             return;
@@ -156,7 +143,7 @@ public class LoginActivity extends AppCompatActivity implements
                         // ...
                     }
                 });
-    }
+    }*/
     private boolean validateForm() {
         boolean valid = true;
 
@@ -183,12 +170,12 @@ public class LoginActivity extends AppCompatActivity implements
     public void onClick(View v) {
         int i = v.getId();
         if (i == R.id.register) {
-            Intent registerIntent = new Intent(this, Register.class);
+            Intent registerIntent = new Intent(this, RegisterActivity.class);
             startActivity(registerIntent);
         } else if (i == R.id.email_sign_in_button) {
-            signIn(mEmailField.getText().toString(), mPasswordField.getText().toString());
+            //signIn(mEmailField.getText().toString(), mPasswordField.getText().toString());
         } else if (i == R.id.sign_in_button) {
-            signInWithGoogle();
+            //signInWithGoogle();
         } else {
 
         }

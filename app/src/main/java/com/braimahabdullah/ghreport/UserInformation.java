@@ -23,6 +23,15 @@ public class UserInformation {
         Password = password;
     }
 
+    public UserInformation(String userId, String phoneNumber){
+        this.UserId = userId;
+        this.phoneNumber = phoneNumber;
+    }
+    public UserInformation(String phoneNumber){
+        this.phoneNumber = phoneNumber;
+    }
+
+
     public String getUsername() {
         return username;
     }
