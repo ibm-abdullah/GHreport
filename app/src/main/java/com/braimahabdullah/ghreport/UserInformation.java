@@ -12,7 +12,6 @@ public class UserInformation {
     private String email;
     private String phoneNumber;
     private String Password;
-    private String UserId;
 
     public UserInformation(String username, String firstname, String lastname, String email, String phoneNumber, String password) {
         this.username = username;
@@ -23,10 +22,6 @@ public class UserInformation {
         Password = password;
     }
 
-    public UserInformation(String userId, String phoneNumber){
-        this.UserId = userId;
-        this.phoneNumber = phoneNumber;
-    }
     public UserInformation(String phoneNumber){
         this.phoneNumber = phoneNumber;
     }
@@ -80,11 +75,4 @@ public class UserInformation {
         Password = password;
     }
 
-    public String getUserId() {
-        return UserId;
-    }
-
-    public void setUserId(String userId) {
-        UserId = userId;
-    }
 }

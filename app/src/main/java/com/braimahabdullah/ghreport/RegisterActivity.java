@@ -11,6 +11,8 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.firebase.ui.auth.AuthUI;
+import com.firebase.ui.auth.ErrorCodes;
+import com.firebase.ui.auth.IdpResponse;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
@@ -22,8 +24,11 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.Arrays;
+
 public class RegisterActivity extends AppCompatActivity implements View.OnClickListener {
 
+    private static final int RC_SIGN_IN = 123;
     private static final String TAG = "RegisterActivity";
     private EditText mUsername;
     private EditText mFirstName;
@@ -33,11 +38,12 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
     private EditText mConfirmPassword;
     private EditText mPhoneNumber;
 
-    private FirebaseAuth mAuth;
     private DatabaseReference mRef;
     private FirebaseDatabase mFirebaseDatabase;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
@@ -54,19 +60,18 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
         findViewById(R.id.sign_up_button).setOnClickListener(this);
         findViewById(R.id.sign_in_button).setOnClickListener(this);
 
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        mPhoneNumber.setText(currentUser.getPhoneNumber().toString());
-
-        mAuth = FirebaseAuth.getInstance();
-        mFirebaseDatabase = FirebaseDatabase.getInstance("https://ghanareport-8f09e.firebaseio.com/");
-        mRef = mFirebaseDatabase.getReferenceFromUrl("https://ghanareport-8f09e.firebaseio.com/");
+        //Get database instance
+        mFirebaseDatabase = FirebaseDatabase.getInstance();
+        mRef = mFirebaseDatabase.getReference().child("users");
     }
 
     private void createUser() {
         Log.d(TAG, "createAccount:");
-       if (!validateForm()) {
+        if (!validateForm()) {
             return;
         }
+
+        //Retrieve form data
         String username = mUsername.toString();
         String firstname = mFirstName.toString();
         String lastname = mLastName.toString();
@@ -74,38 +79,74 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
         String password = mPassword.toString();
         String phoneNumber = mPhoneNumber.toString();
 
+        UserInformation newUser = new UserInformation(username, firstname, lastname, email, phoneNumber, password);
+
+        mRef.push().setValue(newUser);
+        // Read from the database
+        mRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+                String value = dataSnapshot.getValue(String.class);
+                Toast.makeText(RegisterActivity.this, "User profile has been updated",
+                        Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "Value is: " + value);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Failed to read value
+                Toast.makeText(RegisterActivity.this, "Failed to update user profile",
+                        Toast.LENGTH_SHORT).show();
+                Log.w(TAG, "Failed to read value.", error.toException());
+            }
+        });
+    }
+
+    public void signin() {
         FirebaseAuth auth = FirebaseAuth.getInstance();
+        startActivityForResult(
+                AuthUI.getInstance()
+                        .createSignInIntentBuilder()
+                        .setIsSmartLockEnabled(!BuildConfig.DEBUG)
+                        .setLogo(R.drawable.logo)
+                        .setAvailableProviders(
+                                Arrays.asList(new AuthUI.IdpConfig.Builder(AuthUI.PHONE_VERIFICATION_PROVIDER).build(),
+                                        new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build()))
+                        .build(),
+                RC_SIGN_IN);
+    }
 
-        //Check if a user is signed in
-        if(auth.getCurrentUser() != null){
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        // RC_SIGN_IN is the request code you passed into startActivityForResult(...) when starting the sign in flow.
+        if (requestCode == RC_SIGN_IN) {
+            IdpResponse response = IdpResponse.fromResultIntent(data);
 
-            FirebaseUser user = auth.getCurrentUser();
-            String uid = user.getUid();
-            //Create user info object
-            UserInformation newUser = new UserInformation(username, firstname, lastname, email, phoneNumber, password);
+            //Successful sigin
+            if (resultCode == RESULT_OK) {
 
-            DatabaseReference userRef = mRef.child("users").child(uid);
-            userRef.setValue(newUser);
-            // Read from the database
-            userRef.addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(DataSnapshot dataSnapshot) {
-                    // This method is called once with the initial value and again
-                    // whenever data at this location is updated.
-                    String value = dataSnapshot.getValue(String.class);
-                    Toast.makeText(RegisterActivity.this, "User profile has been updated",
+                Intent postIntent = new Intent(this, PostActivity.class);
+                startActivity(postIntent);
+            } else {
+                // Sign in failed
+                if (response == null) {
+                    Toast.makeText(RegisterActivity.this, "Signin Cancelled",
                             Toast.LENGTH_SHORT).show();
-                    Log.d(TAG, "Value is: " + value);
+                    return;
                 }
-
-                @Override
-                public void onCancelled(DatabaseError error) {
-                    // Failed to read value
-                    Toast.makeText(RegisterActivity.this, "Failed to update user profile",
+                if (response.getErrorCode() == ErrorCodes.NO_NETWORK) {
+                    Toast.makeText(RegisterActivity.this, "Network Error",
                             Toast.LENGTH_SHORT).show();
-                    Log.w(TAG, "Failed to read value.", error.toException());
+                    return;
                 }
-            });
+                if (response.getErrorCode() == ErrorCodes.UNKNOWN_ERROR) {
+                    Toast.makeText(RegisterActivity.this, "Unknown error Occurred",
+                            Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            }
         }
     }
 
@@ -113,13 +154,12 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
     public void onClick(View v) {
         int i = v.getId();
         if (i == R.id.sign_in_button) {
-            Intent registerIntent = new Intent(this, LoginActivity.class);
-            startActivity(registerIntent);
+            signin();
         } else if (i == R.id.sign_up_button) {
             Toast.makeText(RegisterActivity.this, "Updating User profile",
                     Toast.LENGTH_SHORT).show();
             createUser();
-        }else if(i ==R.id.sign_out_button){
+        } else if (i == R.id.sign_out_button) {
             AuthUI.getInstance()
                     .signOut(this)
                     .addOnCompleteListener(new OnCompleteListener<Void>() {
@@ -127,13 +167,12 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
                             // user is now signed out
                             Toast.makeText(RegisterActivity.this, "User signed out.",
                                     Toast.LENGTH_SHORT).show();
-                            Intent i  = new Intent(RegisterActivity.this,PostActivity.class);
+                            Intent i = new Intent(RegisterActivity.this, PostActivity.class);
                             startActivity(new Intent(i));
                             finish();
                         }
                     });
-        }
-        else {
+        } else {
 
         }
     }
@@ -148,23 +187,6 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
             valid = false;
         } else {
             mEmail.setError(null);
-        }
-
-        //Password
-        String password = mPassword.getText().toString();
-        String confirm_password = mConfirmPassword.getText().toString();
-        if (TextUtils.isEmpty(password)) {
-            mPassword.setError("Required.");
-            valid = false;
-        } else if (TextUtils.isEmpty(confirm_password)) {
-            mConfirmPassword.setError("Confirm Password");
-            valid = false;
-        } else if (!password.equals(confirm_password)) {
-            mConfirmPassword.setError("Password do not match");
-            valid = false;
-        } else {
-            mPassword.setError(null);
-            mConfirmPassword.setError(null);
         }
         String username = mUsername.getText().toString();
 
@@ -197,9 +219,6 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
         String phone_number = mPhoneNumber.getText().toString();
         if (TextUtils.isEmpty(lastname)) {
             mPhoneNumber.setError("Required");
-            valid = false;
-        } else if (!TextUtils.isDigitsOnly(phone_number)) {
-            mPhoneNumber.setError("Incorrect phone number");
             valid = false;
         } else {
             mPhoneNumber = null;

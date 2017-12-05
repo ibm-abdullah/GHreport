@@ -7,6 +7,8 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.widget.Toast;
 
@@ -30,6 +32,12 @@ public class PostActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        //getSupportActionBar().setDisplayShowHomeEnabled(true);
+        //getSupportActionBar().setTitle("Issues Posted");
+
         FirebaseAuth auth = FirebaseAuth.getInstance();
 
         //Check if the user is sign in
@@ -40,55 +48,20 @@ public class PostActivity extends AppCompatActivity {
             fab.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Intent i = new Intent(PostActivity.this, SendPostActivity.class);
+                    Intent i = new Intent(PostActivity.this, CameraActivity.class);
                     startActivity(i);
                 }
             });
             return;
         } else {
-            startActivityForResult(
-                    AuthUI.getInstance()
-                            .createSignInIntentBuilder()
-                            .setIsSmartLockEnabled(!BuildConfig.DEBUG)
-                            .setLogo(R.drawable.logo)
-                            .setAvailableProviders(
-                                    Arrays.asList(new AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build(),
-                                            new AuthUI.IdpConfig.Builder(AuthUI.PHONE_VERIFICATION_PROVIDER).build(),
-                                            new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build()))
-                            .build(),
-                    RC_SIGN_IN);
+            Intent i = new Intent(this, RegisterActivity.class);
+            startActivity(i);
         }
     }
-
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        // RC_SIGN_IN is the request code you passed into startActivityForResult(...) when starting the sign in flow.
-        if (requestCode == RC_SIGN_IN) {
-            IdpResponse response = IdpResponse.fromResultIntent(data);
-
-            //Successful sigin
-            if (resultCode == RESULT_OK) {
-
-                Intent registerIntent = new Intent(this, RegisterActivity.class);
-                startActivity(registerIntent);
-            } else {
-                // Sign in failed
-                if (response == null) {
-                    Toast.makeText(PostActivity.this, "Signin Cancelled",
-                            Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                if (response.getErrorCode() == ErrorCodes.NO_NETWORK) {
-                    Toast.makeText(PostActivity.this, "Network Error",
-                            Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                if (response.getErrorCode() == ErrorCodes.UNKNOWN_ERROR) {
-                    Toast.makeText(PostActivity.this, "Unknown error Occurred",
-                            Toast.LENGTH_SHORT).show();
-                    return;
-                }
-            }
-        }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        return true;
     }
 }
