@@ -2,6 +2,7 @@ package com.braimahabdullah.ghreport;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.CameraAccessException;
@@ -15,6 +16,7 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
 import android.media.ImageReader;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -39,8 +41,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.Manifest;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -48,8 +59,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 @TargetApi(21)
@@ -65,6 +79,7 @@ public class CameraActivity extends AppCompatActivity {
         ORIENTATIONS.append(Surface.ROTATION_270, 180);
     }
 
+    private FirebaseStorage firebaseStorage;
     protected CameraDevice cameraDevice;
     protected CameraCaptureSession cameraCaptureSessions;
     protected CaptureRequest captureRequest;
@@ -80,6 +95,9 @@ public class CameraActivity extends AppCompatActivity {
     private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mFirebaseDatabaseReference;
     private CameraManager cameraManager;
+    private Image image;
+
+    private Post post;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,17 +118,94 @@ public class CameraActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                if (image != null) {
+                    try {
+                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                        byte[] bytes = new byte[buffer.capacity()];
+                        buffer.get(bytes);
+                        StorageReference storageRef = firebaseStorage.getReference();
 
+                        // Create a child reference
+                        // imagesRef now points to "images"
+                        StorageReference imagesRef = storageRef.child("images");
+
+                        //Get filename
+                        String imageName = generateImageName();
+
+                        //reference to the child image file
+                        StorageReference spaceRef = storageRef.child("images/"+imageName+".jpg");
+
+                        // File path is "images/imageName.jpg"
+                        String path = spaceRef.getPath();
+                        String filename = spaceRef.getName();
+                         //post  = new Post(path,filename);
+                        //Upload file to the cloud
+                        UploadTask uploadTask = spaceRef.putBytes(bytes);
+
+                        uploadTask.addOnFailureListener(new OnFailureListener() {
+                            @Override
+                            public void onFailure(@NonNull Exception exception) {
+                                // Handle unsuccessful uploads
+                                //Toast
+                            }
+                        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                            @Override
+                            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+
+                                //File upload succesful, update post in the datatbase
+
+                                FirebaseDatabase database = FirebaseDatabase.getInstance();
+                                DatabaseReference mRef = database.getReference().child("posts");
+                                Uri uri = taskSnapshot.getDownloadUrl();
+                                post.setDownlableUri(uri);
+
+                                //Add post to firebase database
+                                mRef.push().setValue(post);
+
+                                mRef.addValueEventListener(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(DataSnapshot dataSnapshot) {
+                                        // This method is called once with the initial value and again
+                                        // whenever data at this location is updated.
+                                        String value = dataSnapshot.getValue(String.class);
+                                        Toast.makeText(CameraActivity.this, "Post sent",
+                                                Toast.LENGTH_SHORT).show();
+                                        Log.d(TAG, "Value is: " + value);
+
+                                        Intent i = new Intent(CameraActivity.this,PostActivity.class);
+                                        startActivity(i);
+                                    }
+
+                                    @Override
+                                    public void onCancelled(DatabaseError error) {
+                                        // Failed to read value
+                                        Toast.makeText(CameraActivity.this, "Failed to send Post",
+                                                Toast.LENGTH_SHORT).show();
+                                        Log.w(TAG, "Failed to read value.", error.toException());
+                                    }
+                                });
+                                //Create post obeject
+                            }
+                        });
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        if (image != null) {
+                            image.close();
+                        }
+                    }
+                }
             }
         });
         FloatingActionButton capture = findViewById(R.id.take_picture);
         capture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //takePicture();
+                takePicture();
             }
         });
-
+        firebaseStorage = FirebaseStorage.getInstance();
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         mFirebaseDatabaseReference = mFirebaseDatabase.getReference().child("users");
         //cameraManager = (cameraManager)this.getSystemService(this.CAMERA_SERVICE);
@@ -217,16 +312,15 @@ public class CameraActivity extends AppCompatActivity {
             ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
                 @Override
                 public void onImageAvailable(ImageReader reader) {
-                    Image image = null;
+                    image = null;
                     try {
                         image = reader.acquireLatestImage();
-                        ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                        byte[] bytes = new byte[buffer.capacity()];
-                        buffer.get(bytes);
-                        save(bytes);
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
+                        //ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                        //byte[] bytes = new byte[buffer.capacity()];
+                        //buffer.get(bytes);
+                        //save(bytes);
+
+                    } catch (Exception e) {
                         e.printStackTrace();
                     } finally {
                         if (image != null) {
@@ -378,6 +472,20 @@ public class CameraActivity extends AppCompatActivity {
         //closeCamera();
         stopBackgroundThread();
         super.onPause();
+    }
+
+    public String generateImageName(){
+        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        Date date = new Date();
+        String imageID = dateFormat.format(date).toString();
+        FirebaseAuth auth = FirebaseAuth.getInstance();
+
+        if(auth.getCurrentUser() != null){
+            String uid = auth.getCurrentUser().getUid();
+
+            imageID = imageID + uid;
+        }
+        return imageID;
     }
 }
 

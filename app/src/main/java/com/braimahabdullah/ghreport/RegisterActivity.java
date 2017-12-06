@@ -89,9 +89,12 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
                 // This method is called once with the initial value and again
                 // whenever data at this location is updated.
                 String value = dataSnapshot.getValue(String.class);
-                Toast.makeText(RegisterActivity.this, "User profile has been updated",
+                Toast.makeText(RegisterActivity.this, "Account has been created",
                         Toast.LENGTH_SHORT).show();
                 Log.d(TAG, "Value is: " + value);
+
+                //Redirect user to sign in
+                signin();
             }
 
             @Override
@@ -104,6 +107,9 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
         });
     }
 
+    /**
+     * Use firebase UI to sign user into the Application
+     */
     public void signin() {
         FirebaseAuth auth = FirebaseAuth.getInstance();
         startActivityForResult(
@@ -118,6 +124,12 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
                 RC_SIGN_IN);
     }
 
+    /**
+     * Method to call when sign in intent return result
+     * @param requestCode
+     * @param resultCode
+     * @param data
+     */
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         // RC_SIGN_IN is the request code you passed into startActivityForResult(...) when starting the sign in flow.
@@ -126,7 +138,6 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
 
             //Successful sigin
             if (resultCode == RESULT_OK) {
-
                 Intent postIntent = new Intent(this, PostActivity.class);
                 startActivity(postIntent);
             } else {
@@ -159,7 +170,7 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
             Toast.makeText(RegisterActivity.this, "Updating User profile",
                     Toast.LENGTH_SHORT).show();
             createUser();
-        } else if (i == R.id.sign_out_button) {
+        }/* else if (i == 10) {
             AuthUI.getInstance()
                     .signOut(this)
                     .addOnCompleteListener(new OnCompleteListener<Void>() {
@@ -172,11 +183,15 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
                             finish();
                         }
                     });
-        } else {
+        }*/ else {
 
         }
     }
 
+    /**
+     * Validate form data
+     * @return
+     */
     private boolean validateForm() {
         boolean valid = true;
 

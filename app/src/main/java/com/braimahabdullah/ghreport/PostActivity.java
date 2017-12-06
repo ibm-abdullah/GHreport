@@ -48,7 +48,7 @@ public class PostActivity extends AppCompatActivity {
             fab.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Intent i = new Intent(PostActivity.this, CameraActivity.class);
+                    Intent i = new Intent(PostActivity.this, ReportActivity.class);
                     startActivity(i);
                 }
             });
@@ -57,11 +57,5 @@ public class PostActivity extends AppCompatActivity {
             Intent i = new Intent(this, RegisterActivity.class);
             startActivity(i);
         }
-    }
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu, menu);
-        return true;
     }
 }

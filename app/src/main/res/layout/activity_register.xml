@@ -123,22 +123,16 @@
                     android:maxLines="1" />
 
             </android.support.design.widget.TextInputLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
                 <Button
                     android:id="@+id/sign_up_button"
                     style="?android:textAppearanceSmall"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:background="@color/colorPrimaryDark"
                     android:text="@string/sign_up"
                     android:textColor="@color/common_google_signin_btn_text_dark_default"
                     android:textStyle="bold" />
-            </LinearLayout>
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -161,5 +155,6 @@
                     android:text="@string/sign_in"
                     android:textStyle="bold"/>
             </LinearLayout>
+        </LinearLayout>
     </ScrollView>
 </LinearLayout>
