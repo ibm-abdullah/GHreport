@@ -34,9 +34,11 @@ public class PostActivity extends AppCompatActivity {
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        //getSupportActionBar().setDisplayShowHomeEnabled(true);
-        //getSupportActionBar().setTitle("Issues Posted");
+        //toolbar.setTitle("Report Issues");
+        //toolbar.setTitleMargin(16,0,0,0);
+//        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+//        getSupportActionBar().setDisplayShowHomeEnabled(true);
+//        getSupportActionBar().setTitle("Your Reported Issues");
 
         FirebaseAuth auth = FirebaseAuth.getInstance();
 
