@@ -2,11 +2,15 @@ package com.braimahabdullah.ghreport;
 
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,10 +19,10 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.Manifest;
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -30,13 +34,15 @@ import com.google.firebase.storage.UploadTask;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.text.DateFormat;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class ReportActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String TAG = "Report issues Activity";
     private static final int TAKE_PICTURE = 1;
+    private static final int REQUEST_CAMERA_PERMISSION = 200;
+
     private Uri imageUri;
     private ImageView imageView;
     private TextView textView;
@@ -44,8 +50,10 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
     private Button mTakePictureBtn;
     private Button mTakeVideoBtn;
     private FirebaseStorage firebaseStorage;
-    private FirebaseDatabase firebaseDatabase;
+    private FirebaseDatabase mFirebaseDatabase;
     private Post post;
+    private Uri file;
+    private String imageFileName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,87 +66,115 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
         mTakePictureBtn = findViewById(R.id.picture);
         mTakeVideoBtn = findViewById(R.id.video);
 
+        textView.addTextChangedListener(new TextViewValidator(textView));
+        textView.setOnFocusChangeListener(new TextViewValidator(textView));
         mSendBtn.setOnClickListener(this);
         mTakePictureBtn.setOnClickListener(this);
         mTakeVideoBtn.setOnClickListener(this);
 
-        firebaseDatabase = FirebaseDatabase.getInstance();
+        mFirebaseDatabase = FirebaseDatabase.getInstance();
         firebaseStorage = FirebaseStorage.getInstance();
-    }
 
-    public void takePhoto() {
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        String filename = generateImageFileName();
-        File photo = new File(Environment.getExternalStorageDirectory(), filename + ".jpg");
-        intent.putExtra(MediaStore.EXTRA_OUTPUT,
-                Uri.fromFile(photo));
-        imageUri = Uri.fromFile(photo);
-        startActivityForResult(intent, TAKE_PICTURE);
-    }
+        //Check for permissions
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) !=
+                PackageManager.PERMISSION_GRANTED) {
+            mTakePictureBtn.setEnabled(false);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CAMERA_PERMISSION);
 
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        switch (requestCode) {
-            case TAKE_PICTURE:
-                if (resultCode == ReportActivity.RESULT_OK) {
-                    Uri selectedImage = imageUri;
-                    getContentResolver().notifyChange(selectedImage, null);
-
-                    ContentResolver cr = getContentResolver();
-                    Bitmap bitmap;
-                    try {
-                        bitmap = android.provider.MediaStore.Images.Media
-                                .getBitmap(cr, selectedImage);
-
-                        imageView.setImageBitmap(bitmap);
-                        // Get the data from an ImageView as bytes
-                        imageView.setDrawingCacheEnabled(true);
-                        imageView.buildDrawingCache();
-                    } catch (Exception e) {
-                        Toast.makeText(this, "Failed to load", Toast.LENGTH_SHORT)
-                                .show();
-                        Log.e("Camera", e.toString());
-                    }
-                }
         }
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == 0) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                    && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                mTakePictureBtn.setEnabled(true);
+            }
+        }
+    }
+
+    /**
+     * Use implicit intent to take picture
+     */
+    public void takePhoto() {
+        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        try {
+            File photoFile = createImageFile();
+            if (photoFile != null) {
+                file = FileProvider.getUriForFile(ReportActivity.this, BuildConfig.APPLICATION_ID +
+                        ".provider", photoFile);
+                intent.putExtra(MediaStore.EXTRA_OUTPUT, file);
+                startActivityForResult(intent, TAKE_PICTURE);
+            } else {
+                Toast.makeText(this, "Error Creating File", Toast.LENGTH_SHORT).show();
+            }
+        } catch (IOException e) {
+
+        }
+    }
+
+    /**
+     * A callback to handle picture snapping status
+     * @param requestCode
+     * @param resultCode
+     * @param data
+     */
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == TAKE_PICTURE) {
+            if (resultCode == RESULT_OK) {
+                imageView.setImageURI(null);
+                imageView.setImageURI(file);
+            } else {
+                Toast.makeText(this, "Error Taking Picture", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    /**
+     * Post send picture to the cload database
+     */
     public void sendPicture() {
 
+        //Process image into bytes
+        imageView.setDrawingCacheEnabled(true);
+        imageView.buildDrawingCache();
         Bitmap bitmap = imageView.getDrawingCache();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
         byte[] data = baos.toByteArray();
 
+
         StorageReference storageRef = firebaseStorage.getReference();
-        //StorageReference imagesRef = storageRef.child("images");
-        //Get filename
-        String filename = generateImageFileName();
+        StorageReference imagesRef = storageRef.child("images").child(imageFileName);
 
-        //reference to the child image file
-        StorageReference spaceRef = storageRef.child("images/" + filename + ".jpg");
-
-        // File path is "images/imageName.jpg"//
-        String path = spaceRef.getPath();
-        String name = spaceRef.getName();
+        //Get image properties
+        String path = imagesRef.getPath();
+        String name = imagesRef.getName();
         String issue = textView.getText().toString();
+
+        //Create a post object
         post = new Post(path, name, issue);
 
-        UploadTask uploadTask = spaceRef.putBytes(data);
+        //Upload image to firebase storage
+        UploadTask uploadTask = imagesRef.putBytes(data);
         uploadTask.addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception exception) {
-                // Handle unsuccessful uploads
+                Toast.makeText(ReportActivity.this, "File could not be upload. Try again",
+                        Toast.LENGTH_SHORT).show();
             }
         }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                // taskSnapshot.getMetadata() contains file metadata such as size, content-type, and download URL.
-                Uri downloadUrl = taskSnapshot.getDownloadUrl();
-                post.setDownlableUri(downloadUrl);
-
-                DatabaseReference mRef = firebaseDatabase.getReference().child("posts");
+                //Toast.makeText(ReportActivity.this,"Image succesfully uploaded",
+                //      Toast.LENGTH_SHORT).show();
+                Uri downloadUri = taskSnapshot.getDownloadUrl();
+                post.setDownlableUri(downloadUri);
+                DatabaseReference mRef = mFirebaseDatabase.getReference().child("posts");
                 mRef.push().setValue(post);
 
                 // Read from the database
@@ -147,10 +183,9 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         // This method is called once with the initial value and again
                         // whenever data at this location is updated.
-                        String value = dataSnapshot.getValue(String.class);
-                        Toast.makeText(ReportActivity.this, "Issue posted",
+                        Toast.makeText(ReportActivity.this, "Issue posted succesfully",
                                 Toast.LENGTH_SHORT).show();
-                        Log.d(TAG, "Value is: " + value);
+                        Log.d(TAG, "Issues  posted");
                     }
 
                     @Override
@@ -163,8 +198,6 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
                 });
             }
         });
-        Toast.makeText(this, filename.toString(),
-                Toast.LENGTH_LONG).show();
     }
 
     @Override
@@ -172,10 +205,10 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
         int i = v.getId();
 
         if (i == R.id.send) {
-            if(imageView == null){
-                Toast.makeText(ReportActivity.this, "Failled to Post issue",
+            if (imageView == null) {
+                Toast.makeText(ReportActivity.this, "Add a picture to your or video to issue",
                         Toast.LENGTH_SHORT).show();
-            }else{
+            } else {
                 sendPicture();
             }
         } else if (i == R.id.picture) {
@@ -187,22 +220,27 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
         }
     }
 
-    @Override
-    public void onPointerCaptureChanged(boolean hasCapture) {
+    /**
+     * Used to create a Image file
+     *
+     * @return Image file
+     * @throws IOException exception
+     */
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DCIM), "Camera");
 
-    }
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
 
-    public String generateImageFileName() {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        Date date = new Date();
-        String imageID = dateFormat.format(date).toString();
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-
-        if (auth.getCurrentUser() != null) {
-            String uid = auth.getCurrentUser().getUid();
-
-            imageID = imageID + uid;
-        }
-        return imageID;
+        // Save a file: path for use with ACTION_VIEW intents
+        //imagePath = "file:" + image.getAbsolutePath();
+        return image;
     }
 }

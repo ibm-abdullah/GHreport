@@ -2,6 +2,8 @@ package com.braimahabdullah.ghreport;
 
 import android.net.Uri;
 
+import java.net.URL;
+
 /**
  * Created by Ibrahim-Abdullah on 12/5/2017.
  */
