@@ -10,15 +10,17 @@
     tools:layout_editor_absoluteX="0dp"
     android:weightSum="1">
 
-    <TextView
+    <EditText
+        android:id="@+id/title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Tell us what happend...."
+        android:text="Title"
         android:textSize="20sp"
         android:padding="@dimen/activity_vertical_margin" />
 
     <EditText
         android:id="@+id/issue"
+        android:text="Tell us what happened"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="text|textMultiLine"
@@ -42,11 +44,11 @@
             android:text="Take Picture" />
 
         <Button
-            android:id="@+id/video"
+            android:id="@+id/location"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Record Video" />
+            android:text="Add Location" />
 
         <Button
             android:id="@+id/send"

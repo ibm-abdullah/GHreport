@@ -1,16 +1,20 @@
 package com.braimahabdullah.ghreport;
 
-import android.content.ContentResolver;
+
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.location.Location;
+import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -38,16 +42,18 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class ReportActivity extends AppCompatActivity implements View.OnClickListener {
+public class ReportActivity extends AppCompatActivity implements View.OnClickListener{
     private static final String TAG = "Report issues Activity";
     private static final int TAKE_PICTURE = 1;
     private static final int REQUEST_CAMERA_PERMISSION = 200;
+    private static final int PERMISSION_ACCESS_FINE_LOCATION=300;
 
     private ImageView imageView;
     private TextView textView;
+    private TextView mTitle;
     private Button mSendBtn;
     private Button mTakePictureBtn;
-    private Button mTakeVideoBtn;
+    private Button mGetLocation;
     private FirebaseStorage firebaseStorage;
     private FirebaseDatabase mFirebaseDatabase;
     private Uri file;
@@ -55,22 +61,29 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
     private String imageFileName;
     private String imagePath;
 
+    private LocationManager locationManager;
+    Location location;
+    double latitude;
+    double longitude;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_report);
 
+        mTitle = findViewById(R.id.title);
         imageView = findViewById(R.id.image);
         textView = findViewById(R.id.issue);
         mSendBtn = findViewById(R.id.send);
         mTakePictureBtn = findViewById(R.id.picture);
-        mTakeVideoBtn = findViewById(R.id.video);
+        mGetLocation = findViewById(R.id.location);
+        mSendBtn.setEnabled(false);
 
         textView.addTextChangedListener(new TextViewValidator(textView));
         textView.setOnFocusChangeListener(new TextViewValidator(textView));
         mSendBtn.setOnClickListener(this);
         mTakePictureBtn.setOnClickListener(this);
-        mTakeVideoBtn.setOnClickListener(this);
+        mGetLocation.setOnClickListener(this);
 
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         firebaseStorage = FirebaseStorage.getInstance();
@@ -83,14 +96,25 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
                     Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CAMERA_PERMISSION);
 
         }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission. ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.ACCESS_FINE_LOCATION },
+                    PERMISSION_ACCESS_FINE_LOCATION);
+        }
+
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        if (requestCode == 0) {
+        if (requestCode == REQUEST_CAMERA_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED
                     && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
                 mTakePictureBtn.setEnabled(true);
+            }
+        }else if(requestCode == PERMISSION_ACCESS_FINE_LOCATION){
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            } else {
+                Toast.makeText(this, "Need your location!", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -129,6 +153,7 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
             if (resultCode == RESULT_OK) {
                 imageView.setImageURI(null);
                 imageView.setImageURI(file);
+                Toast.makeText(this, "Add Location", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, "Error Taking Picture", Toast.LENGTH_SHORT).show();
             }
@@ -175,8 +200,8 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     public void addPost() {
-
-        Post newPost = new Post(imageFileName, imagePath, textView.getText().toString(), downlaodUri);
+        Post newPost = new Post(mTitle.getText().toString(),imageFileName, imagePath,downlaodUri,
+                textView.getText().toString());
         DatabaseReference mRef = mFirebaseDatabase.getReference().child("posts");
         mRef.push().setValue(newPost);
 
@@ -201,6 +226,18 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
         });
     }
 
+    public void addLocation(){
+        GPSTracker gps = new GPSTracker(ReportActivity.this);
+        if(gps.canGetLocation()){
+            latitude = gps.getLatitude();
+            longitude = gps.getLongitude();
+            mSendBtn.setEnabled(true);
+            Toast.makeText(this,"Current" + latitude + ""+longitude,Toast.LENGTH_SHORT).show();
+        }else{
+            gps.showSettingsAlert();
+            Toast.makeText(this,"Click button to add location",Toast.LENGTH_SHORT).show();
+        }
+    }
     @Override
     public void onClick(View v) {
         int i = v.getId();
@@ -214,8 +251,8 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
             }
         } else if (i == R.id.picture) {
             takePhoto();
-        } else if (i == R.id.video) {
-
+        } else if (i == R.id.location) {
+            addLocation();
         } else {
 
         }

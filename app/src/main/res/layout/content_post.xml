@@ -8,4 +8,12 @@
     tools:context="com.braimahabdullah.ghreport.PostActivity"
     tools:showIn="@layout/activity_post">
 
+    <ListView
+        android:id="@+id/postListView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:divider="@null"
+        android:dividerHeight="0dp"
+        android:paddingBottom="10dp"
+        android:text="Ibrahim" />
 </android.support.constraint.ConstraintLayout>

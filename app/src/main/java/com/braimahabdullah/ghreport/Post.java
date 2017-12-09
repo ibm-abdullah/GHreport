@@ -1,21 +1,26 @@
 package com.braimahabdullah.ghreport;
 
-import android.net.Uri;
-
-import java.net.URL;
+import android.location.Location;
+import android.location.LocationManager;
 
 /**
  * Created by Ibrahim-Abdullah on 12/5/2017.
  */
 
 public class Post {
+    String title;
     String filename;
     String filePath;
     String downlableUri;
     String issue;
+    double longitude;
+    double latitude;
 
 
-    public Post(String filename, String filePath, String downlableUri,String issue) {
+
+
+    public Post(String title,String filename, String filePath, String downlableUri,String issue) {
+        this.title = title;
         this.filename = filename;
         this.filePath = filePath;
         this.downlableUri = downlableUri;
@@ -44,5 +49,29 @@ public class Post {
 
     public void setDownlableUri(String downlableUri) {
         this.downlableUri = downlableUri;
+    }
+
+    public String getIssue() {
+        return issue;
+    }
+
+    public void setIssue(String issue) {
+        this.issue = issue;
+    }
+
+    public double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(double longitude) {
+        this.longitude = longitude;
+    }
+
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(double latitude) {
+        this.latitude = latitude;
     }
 }

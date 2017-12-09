@@ -157,8 +157,8 @@ public class RegisterActivity extends AppCompatActivity implements View.OnClickL
             if (resultCode == RESULT_OK) {
                 Toast.makeText(RegisterActivity.this, "Sign in successful",
                         Toast.LENGTH_SHORT).show();
-                Intent postIntent = new Intent(this, PostActivity.class);
-                startActivity(postIntent);
+                Intent reportIntent = new Intent(this, ReportActivity.class);
+                startActivity(reportIntent);
             } else {
                 // Sign in failed
                 if (response == null) {
