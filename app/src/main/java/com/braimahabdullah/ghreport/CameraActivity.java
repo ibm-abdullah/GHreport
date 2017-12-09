@@ -156,7 +156,7 @@ public class CameraActivity extends AppCompatActivity {
 
                                 FirebaseDatabase database = FirebaseDatabase.getInstance();
                                 DatabaseReference mRef = database.getReference().child("posts");
-                                Uri uri = taskSnapshot.getDownloadUrl();
+                                String uri = taskSnapshot.getDownloadUrl().toString();
                                 post.setDownlableUri(uri);
 
                                 //Add post to firebase database

@@ -11,20 +11,14 @@ import java.net.URL;
 public class Post {
     String filename;
     String filePath;
-    Uri downlableUri;
+    String downlableUri;
     String issue;
 
 
-    public Post(String filename, String filePath, Uri downlableUri,String issue) {
+    public Post(String filename, String filePath, String downlableUri,String issue) {
         this.filename = filename;
         this.filePath = filePath;
         this.downlableUri = downlableUri;
-        this.issue = issue;
-    }
-
-    public Post(String filename, String filePath,String issue) {
-        this.filename = filename;
-        this.filePath = filePath;
         this.issue = issue;
     }
 
@@ -44,11 +38,11 @@ public class Post {
         this.filePath = filePath;
     }
 
-    public Uri getDownlableUri() {
+    public String getDownlableUri() {
         return downlableUri;
     }
 
-    public void setDownlableUri(Uri downlableUri) {
+    public void setDownlableUri(String downlableUri) {
         this.downlableUri = downlableUri;
     }
 }

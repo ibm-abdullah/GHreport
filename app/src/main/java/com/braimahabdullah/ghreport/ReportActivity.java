@@ -43,7 +43,6 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
     private static final int TAKE_PICTURE = 1;
     private static final int REQUEST_CAMERA_PERMISSION = 200;
 
-    private Uri imageUri;
     private ImageView imageView;
     private TextView textView;
     private Button mSendBtn;
@@ -51,9 +50,10 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
     private Button mTakeVideoBtn;
     private FirebaseStorage firebaseStorage;
     private FirebaseDatabase mFirebaseDatabase;
-    private Post post;
     private Uri file;
+    private String downlaodUri;
     private String imageFileName;
+    private String imagePath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,6 +117,7 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
 
     /**
      * A callback to handle picture snapping status
+     *
      * @param requestCode
      * @param resultCode
      * @param data
@@ -152,12 +153,7 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
         StorageReference imagesRef = storageRef.child("images").child(imageFileName);
 
         //Get image properties
-        String path = imagesRef.getPath();
-        String name = imagesRef.getName();
-        String issue = textView.getText().toString();
-
-        //Create a post object
-        post = new Post(path, name, issue);
+        //imagePath = imagesRef.getPath();
 
         //Upload image to firebase storage
         UploadTask uploadTask = imagesRef.putBytes(data);
@@ -170,32 +166,37 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
         }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
             @Override
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                //Toast.makeText(ReportActivity.this,"Image succesfully uploaded",
-                //      Toast.LENGTH_SHORT).show();
-                Uri downloadUri = taskSnapshot.getDownloadUrl();
-                post.setDownlableUri(downloadUri);
-                DatabaseReference mRef = mFirebaseDatabase.getReference().child("posts");
-                mRef.push().setValue(post);
+                Toast.makeText(ReportActivity.this, "Image successfully uploaded",
+                        Toast.LENGTH_SHORT).show();
+                downlaodUri = taskSnapshot.getDownloadUrl().toString();
+                addPost();
+            }
+        });
+    }
 
-                // Read from the database
-                mRef.addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(DataSnapshot dataSnapshot) {
-                        // This method is called once with the initial value and again
-                        // whenever data at this location is updated.
-                        Toast.makeText(ReportActivity.this, "Issue posted succesfully",
-                                Toast.LENGTH_SHORT).show();
-                        Log.d(TAG, "Issues  posted");
-                    }
+    public void addPost() {
 
-                    @Override
-                    public void onCancelled(DatabaseError error) {
-                        // Failed to read value
-                        Toast.makeText(ReportActivity.this, "Failled to Post issue",
-                                Toast.LENGTH_SHORT).show();
-                        Log.w(TAG, "Failed to read value.", error.toException());
-                    }
-                });
+        Post newPost = new Post(imageFileName, imagePath, textView.getText().toString(), downlaodUri);
+        DatabaseReference mRef = mFirebaseDatabase.getReference().child("posts");
+        mRef.push().setValue(newPost);
+
+        // Read from the database
+        mRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+                Toast.makeText(ReportActivity.this, "Issue posted successfully",
+                        Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "Issues  posted");
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                // Failed to read value
+                Toast.makeText(ReportActivity.this, "Failed to Post issue",
+                        Toast.LENGTH_SHORT).show();
+                Log.w(TAG, "Failed to read value.", error.toException());
             }
         });
     }
