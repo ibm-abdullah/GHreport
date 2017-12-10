@@ -18,6 +18,9 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -25,8 +28,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.Manifest;
 
+import com.firebase.ui.auth.AuthUI;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -42,11 +48,11 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class ReportActivity extends AppCompatActivity implements View.OnClickListener{
+public class ReportActivity extends AppCompatActivity implements View.OnClickListener {
     private static final String TAG = "Report issues Activity";
     private static final int TAKE_PICTURE = 1;
     private static final int REQUEST_CAMERA_PERMISSION = 200;
-    private static final int PERMISSION_ACCESS_FINE_LOCATION=300;
+    private static final int PERMISSION_ACCESS_FINE_LOCATION = 300;
 
     private ImageView imageView;
     private TextView textView;
@@ -81,6 +87,9 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
 
         textView.addTextChangedListener(new TextViewValidator(textView));
         textView.setOnFocusChangeListener(new TextViewValidator(textView));
+        mTitle.addTextChangedListener(new TextViewValidator(mTitle));
+        mTitle.setOnFocusChangeListener(new TextViewValidator(mTitle));
+
         mSendBtn.setOnClickListener(this);
         mTakePictureBtn.setOnClickListener(this);
         mGetLocation.setOnClickListener(this);
@@ -96,9 +105,9 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
                     Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CAMERA_PERMISSION);
 
         }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission. ACCESS_FINE_LOCATION)
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.ACCESS_FINE_LOCATION },
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     PERMISSION_ACCESS_FINE_LOCATION);
         }
 
@@ -111,7 +120,7 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
                     && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
                 mTakePictureBtn.setEnabled(true);
             }
-        }else if(requestCode == PERMISSION_ACCESS_FINE_LOCATION){
+        } else if (requestCode == PERMISSION_ACCESS_FINE_LOCATION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             } else {
                 Toast.makeText(this, "Need your location!", Toast.LENGTH_SHORT).show();
@@ -153,7 +162,7 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
             if (resultCode == RESULT_OK) {
                 imageView.setImageURI(null);
                 imageView.setImageURI(file);
-                Toast.makeText(this, "Add Location", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Add location", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, "Error Taking Picture", Toast.LENGTH_SHORT).show();
             }
@@ -194,13 +203,14 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
                 Toast.makeText(ReportActivity.this, "Image successfully uploaded",
                         Toast.LENGTH_SHORT).show();
                 downlaodUri = taskSnapshot.getDownloadUrl().toString();
+
                 addPost();
             }
         });
     }
 
     public void addPost() {
-        Post newPost = new Post(mTitle.getText().toString(),imageFileName, imagePath,downlaodUri,
+        Post newPost = new Post(mTitle.getText().toString(), imageFileName, imagePath, downlaodUri,
                 textView.getText().toString());
         DatabaseReference mRef = mFirebaseDatabase.getReference().child("posts");
         mRef.push().setValue(newPost);
@@ -226,18 +236,19 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
         });
     }
 
-    public void addLocation(){
+    public void addLocation() {
         GPSTracker gps = new GPSTracker(ReportActivity.this);
-        if(gps.canGetLocation()){
+        if (gps.canGetLocation()) {
             latitude = gps.getLatitude();
             longitude = gps.getLongitude();
             mSendBtn.setEnabled(true);
-            Toast.makeText(this,"Current" + latitude + ""+longitude,Toast.LENGTH_SHORT).show();
-        }else{
+            Toast.makeText(this, "Current" + latitude + "" + longitude, Toast.LENGTH_SHORT).show();
+        } else {
             gps.showSettingsAlert();
-            Toast.makeText(this,"Click button to add location",Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Click button to add location", Toast.LENGTH_SHORT).show();
         }
     }
+
     @Override
     public void onClick(View v) {
         int i = v.getId();
@@ -280,5 +291,35 @@ public class ReportActivity extends AppCompatActivity implements View.OnClickLis
         // Save a file: path for use with ACTION_VIEW intents
         //imagePath = "file:" + image.getAbsolutePath();
         return image;
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.sign_out_menu) {
+            //Toast.makeText(this,"Signing out",Toast.LENGTH_SHORT).show();
+            signUserOut();
+        }
+        return true;
+    }
+
+    /**
+     * Sign user out of the application
+     */
+    public void signUserOut() {
+        AuthUI.getInstance()
+                .signOut(this)
+                .addOnCompleteListener(new OnCompleteListener<Void>() {
+                    public void onComplete(@NonNull Task<Void> task) {
+                        Intent intent = new Intent(ReportActivity.this, RegisterActivity.class);
+                        startActivity(intent);
+                    }
+                });
     }
 }

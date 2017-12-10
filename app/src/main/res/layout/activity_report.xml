@@ -14,13 +14,15 @@
         android:id="@+id/title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Title"
+        android:imeActionLabel="Issue title"
+        android:hint="Issue title"
         android:textSize="20sp"
         android:padding="@dimen/activity_vertical_margin" />
 
     <EditText
         android:id="@+id/issue"
-        android:text="Tell us what happened"
+        android:imeActionLabel="Issue"
+        android:hint="Tell us what happened ..."
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:inputType="text|textMultiLine"

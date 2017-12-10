@@ -16,8 +16,6 @@ public class TextViewValidator extends TextValidator implements View.OnFocusChan
     @Override
     public void validate(TextView textView) {
         if(TextUtils.isEmpty(textView.getText().toString())){
-//            android.support.design.widget.TextInputLayout parent = (android.support.design.widget.TextInputLayout) textView.getParent();
-//            textView.setError(parent.getHint().toString()+ "is required");
             textView.setError("Required");
         }else {
             textView.setError(null);
