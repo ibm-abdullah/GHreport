@@ -4,24 +4,32 @@ package com.braimahabdullah.ghreport;
  * Created by Ibrahim-Abdullah on 12/2/2017.
  */
 
-public class UserInformation {
+public class AppUser {
 
     private String username;
     private String firstname;
     private String lastname;
     private String email;
     private String phoneNumber;
-    private String Password;
-    private String UserId;
+    private String password;
+    private String organization;
 
-    public UserInformation(String username, String firstname, String lastname, String email, String phoneNumber, String password) {
+    public AppUser(String username, String firstname, String lastname, String email,
+                   String phoneNumber, String password, String organization) {
         this.username = username;
         this.firstname = firstname;
         this.lastname = lastname;
         this.email = email;
         this.phoneNumber = phoneNumber;
-        Password = password;
+        this.password = password;
+        this.organization = organization;
+
     }
+
+    public AppUser(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
 
     public String getUsername() {
         return username;
@@ -64,18 +72,18 @@ public class UserInformation {
     }
 
     public String getPassword() {
-        return Password;
+        return password;
     }
 
     public void setPassword(String password) {
-        Password = password;
+        this.password = password;
     }
 
-    public String getUserId() {
-        return UserId;
+    public String getOrganization() {
+        return organization;
     }
 
-    public void setUserId(String userId) {
-        UserId = userId;
+    public void setOrganization(String organization) {
+        this.organization = organization;
     }
 }
